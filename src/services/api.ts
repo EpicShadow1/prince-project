@@ -3,7 +3,9 @@
  * Handles all API calls to the backend server
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+// Use a relative '/api' default so Vite dev server proxy forwards requests to the backend
+// When building for production set VITE_API_BASE_URL to your API host (e.g. https://api.example.com)
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 interface ApiResponse<T> {
   success: boolean;
