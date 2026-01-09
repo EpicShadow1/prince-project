@@ -6,6 +6,7 @@ import { User, Lock, ChevronRight, ShieldCheck, ArrowLeft, Mail, AlertCircle } f
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { Select } from '../components/ui/Select';
+import { Input } from '../components/ui/Input';
 export function LoginPage() {
   const {
     login
@@ -86,29 +87,9 @@ export function LoginPage() {
                 </div>
 
                 <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Username / Staff ID
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <User className="h-5 w-5 text-slate-400" />
-                      </div>
-                      <input type="text" value={username} onChange={e => setUsername(e.target.value)} className="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-md leading-5 bg-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition-shadow" placeholder="Enter your ID" />
-                    </div>
-                  </div>
+                  <Input label="Username / Staff ID" value={username} onChange={e => setUsername(e.target.value)} placeholder="Enter your ID" icon={<User className="h-5 w-5" />} />
 
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">
-                      Password
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Lock className="h-5 w-5 text-slate-400" />
-                      </div>
-                      <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-md leading-5 bg-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition-shadow" placeholder="••••••••" />
-                    </div>
-                  </div>
+                  <Input label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" icon={<Lock className="h-5 w-5" />} />
                 </div>
 
                 {error && <div className="flex items-center gap-2 p-3 bg-red-50 text-red-700 rounded-md text-sm">
@@ -145,17 +126,7 @@ export function LoginPage() {
                 </div>
               </form> : <div className="space-y-6">
                 {!resetSuccess ? <form onSubmit={handleResetPassword} className="space-y-6">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Email Address
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <Mail className="h-5 w-5 text-slate-400" />
-                        </div>
-                        <input type="email" value={resetEmail} onChange={e => setResetEmail(e.target.value)} className="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-md leading-5 bg-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition-shadow" placeholder="Enter your email" required />
-                      </div>
-                    </div>
+                    <Input label="Email Address" type="email" value={resetEmail} onChange={e => setResetEmail(e.target.value)} placeholder="Enter your email" required icon={<Mail className="h-5 w-5" />} />
 
                     {error && <div className="flex items-center gap-2 p-3 bg-red-50 text-red-700 rounded-md text-sm">
                         <AlertCircle className="h-4 w-4" />
