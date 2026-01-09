@@ -7,6 +7,7 @@ import { LoadingButton } from '../components/ui/LoadingButton';
 import { Card } from '../components/ui/Card';
 import { Select } from '../components/ui/Select';
 import { Input } from '../components/ui/Input';
+
 export function LoginPage() {
   const {
     login
@@ -100,7 +101,7 @@ export function LoginPage() {
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <User className="h-5 w-5 text-slate-400" />
                       </div>
-                      <input id="username" name="username" type="text" value={username} onChange={e => setUsername(e.target.value)} className="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-md leading-5 bg-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition-shadow" placeholder="Enter your ID" required />
+                      <Input id="username" name="username" type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="Enter your ID" required icon={<User className="h-5 w-5" />} />
                     </div>
                   </div>
 
@@ -112,7 +113,7 @@ export function LoginPage() {
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <Lock className="h-5 w-5 text-slate-400" />
                       </div>
-                      <input id="password" name="password" type="password" value={password} onChange={e => setPassword(e.target.value)} className="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-md leading-5 bg-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition-shadow" placeholder="••••••••" required />
+                      <Input id="password" name="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required icon={<Lock className="h-5 w-5" />} />
                     </div>
                   </div>
                 </div>
@@ -157,7 +158,7 @@ export function LoginPage() {
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                           <Mail className="h-5 w-5 text-slate-400" />
                         </div>
-                        <input id="reset-email" name="reset-email" type="email" value={resetEmail} onChange={e => setResetEmail(e.target.value)} className="block w-full pl-10 pr-3 py-2 border border-slate-300 rounded-md leading-5 bg-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm transition-shadow" placeholder="Enter your email" required />
+                        <Input id="reset-email" name="reset-email" type="email" value={resetEmail} onChange={e => setResetEmail(e.target.value)} placeholder="Enter your email" required icon={<Mail className="h-5 w-5" />} />
                       </div>
                     </div>
 
