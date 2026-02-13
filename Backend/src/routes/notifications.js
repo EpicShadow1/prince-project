@@ -24,8 +24,9 @@ router.get('/', async (req, res) => {
 
     // Filter unread only if requested
     if (unreadOnly === 'true') {
-      query += ' AND n.read = FALSE';
+      query += ' AND n.`read` = FALSE';
     }
+
 
     query += ' ORDER BY n.created_at DESC LIMIT ? OFFSET ?';
     params.push(parseInt(limit), parseInt(offset));
@@ -34,9 +35,10 @@ router.get('/', async (req, res) => {
 
     // Get unread count
     const [unreadResult] = await db.query(
-      'SELECT COUNT(*) as unread FROM notifications WHERE user_id = ? AND read = FALSE',
+      'SELECT COUNT(*) as unread FROM notifications WHERE user_id = ? AND `read` = FALSE',
       [req.user.id]
     );
+
 
     res.json({
       success: true,
@@ -66,9 +68,10 @@ router.put('/:id/read', async (req, res) => {
     const { id } = req.params;
 
     await db.query(
-      'UPDATE notifications SET read = TRUE WHERE id = ? AND user_id = ?',
+      'UPDATE notifications SET `read` = TRUE WHERE id = ? AND user_id = ?',
       [id, req.user.id]
     );
+
 
     res.json({
       success: true,
@@ -90,9 +93,10 @@ router.put('/:id/read', async (req, res) => {
 router.put('/read-all', async (req, res) => {
   try {
     await db.query(
-      'UPDATE notifications SET read = TRUE WHERE user_id = ?',
+      'UPDATE notifications SET `read` = TRUE WHERE user_id = ?',
       [req.user.id]
     );
+
 
     res.json({
       success: true,
