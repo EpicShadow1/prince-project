@@ -320,13 +320,19 @@ async getCaseById(id: string) {
     type: string;
     description?: string;
     priority?: string;
+    partyCategory?: string;
     parties?: Array<{
       role: string;
       name: string;
       lawyerId?: string;
+      contactInfo?: {
+        phone?: string;
+        address?: string;
+      };
     }>;
     nextHearing?: string;
   }) {
+
     return request('/cases', {
       method: 'POST',
       body: JSON.stringify(caseData),

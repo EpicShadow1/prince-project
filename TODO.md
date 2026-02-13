@@ -1,17 +1,23 @@
-# TODO: Make Chat and Notifications Fully Functional
+# Party Categories Implementation TODO
 
-## Backend Changes:
-- [x] 1. Create `chat_messages` table in database schema (Backend/database/schema.sql)
-- [x] 2. Create backend API routes for chat (Backend/src/routes/chat.js)
-- [x] 3. Register chat routes in index.js
-- [x] 4. Add notification creation when sending chat messages
+## Backend Changes
+- [x] 1. Update database schema - Add party_category column to cases table
+- [x] 2. Update database schema - Add contact_info JSON column to case_parties table
+- [x] 3. Update Backend/src/routes/cases.js - Handle partyCategory in POST /cases
+- [x] 4. Update Backend/src/routes/cases.js - Store contact_info for public parties
 
-## Frontend Changes:
-- [x] 5. Add chatApi to src/services/api.ts
-- [x] 6. Update ChatContext.tsx to use backend API instead of localStorage
-- [x] 7. Update SystemContext.tsx to add chat notification support
-- [ ] 8. Test the integration
+## Frontend API Changes
+- [x] 5. Update src/services/api.ts - Add partyCategory to createCase type
 
-## Progress:
-- Started: 2024
-- Status: Steps 1-7 Complete - Ready for Testing
+## Frontend Context Changes
+- [x] 6. Update src/contexts/CasesContext.tsx - Add partyCategory to Case interface
+- [x] 7. Update src/contexts/CasesContext.tsx - Update addCase to pass party details
+
+## Frontend UI Changes
+- [x] 8. Update src/components/CreateCaseModal.tsx - Add imports (Building2, UserCircle)
+- [x] 9. Update src/components/CreateCaseModal.tsx - Add PartyCategory type and state
+- [x] 10. Update src/components/CreateCaseModal.tsx - Add plaintiffInfo/defendantInfo state
+- [x] 11. Update src/components/CreateCaseModal.tsx - Add party category grid UI
+- [x] 12. Update src/components/CreateCaseModal.tsx - Add conditional public party forms
+- [x] 13. Update src/components/CreateCaseModal.tsx - Update validation logic
+- [x] 14. Update src/components/CreateCaseModal.tsx - Update submit handler

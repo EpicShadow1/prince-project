@@ -48,7 +48,9 @@ CREATE TABLE IF NOT EXISTS cases (
     lawyer_id INT,
     created_by INT NOT NULL,
     court VARCHAR(255),
+    party_category ENUM('govt-vs-govt', 'govt-vs-public', 'public-vs-govt', 'public-vs-public') NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (judge_id) REFERENCES users(id) ON DELETE SET NULL,
     FOREIGN KEY (lawyer_id) REFERENCES users(id) ON DELETE SET NULL,
@@ -72,8 +74,9 @@ CREATE TABLE IF NOT EXISTS case_parties (
     role ENUM('plaintiff', 'defendant', 'petitioner', 'respondent') NOT NULL,
     name VARCHAR(255) NOT NULL,
     lawyer_id INT,
-    contact_info TEXT,
+    contact_info JSON,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
     FOREIGN KEY (case_id) REFERENCES cases(id) ON DELETE CASCADE,
     FOREIGN KEY (lawyer_id) REFERENCES users(id) ON DELETE SET NULL,
     INDEX idx_case_id (case_id),

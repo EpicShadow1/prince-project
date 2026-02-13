@@ -13,7 +13,6 @@ import { useCases } from '../../contexts/CasesContext';
 import { usersApi } from '../../services/api';
 import { CreateCaseModal } from '../../components/CreateCaseModal';
 
-
 interface Lawyer {
   id: number;
   name: string;

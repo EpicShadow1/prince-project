@@ -38,8 +38,19 @@ export interface Case {
   assignedToJudge?: boolean;
   lawyer?: string;
   createdBy?: string;
-  partyCategory?: string;
+  partyCategory?: 'govt-vs-govt' | 'govt-vs-public' | 'public-vs-govt' | 'public-vs-public';
+  plaintiffInfo?: {
+    name: string;
+    phone: string;
+    address: string;
+  };
+  defendantInfo?: {
+    name: string;
+    phone: string;
+    address: string;
+  };
 }
+
 export interface Motion {
   id: number;
   caseId: string;
@@ -70,13 +81,17 @@ interface CasesContextType {
   refresh: () => Promise<void>;
   fetchMotions: () => Promise<void>;
   fetchOrders: () => Promise<void>;
-  addCase: (newCase: Omit<Case, 'id' | 'filed' | 'updated'>) => Promise<void>;
+  addCase: (newCase: Omit<Case, 'id' | 'filed' | 'updated'>, parties?: Array<{role: string, name: string, contactInfo?: {phone?: string, address?: string}}>, partyCategory?: string) => Promise<Case>;
+
+
   updateCase: (id: string, updates: Partial<Case>) => void;
   deleteCase: (id: string) => Promise<void>;
 
   getCaseById: (id: string) => Case | undefined;
   addDocumentToCase: (caseId: string, document: CaseDocument) => void;
+  removeDocumentFromCase: (caseId: string, docId: string) => void;
   addNoteToCase: (caseId: string, note: string) => void;
+
   updateCaseStatus: (caseId: string, status: string) => void;
   scheduleHearing: (caseId: string, date: string) => void;
   submitJudgment: (caseId: string, judgmentText: string) => void;
@@ -421,7 +436,8 @@ export function CasesProvider({
   // Motions and orders are now stored in backend only
 
 
-  const addCase = async (newCase: Omit<Case, 'id' | 'filed' | 'updated'>) => {
+  const addCase = async (newCase: Omit<Case, 'id' | 'filed' | 'updated'>, parties?: Array<{role: string, name: string, contactInfo?: {phone?: string, address?: string}}>, partyCategory?: string) => {
+
     const hearingDate =
       newCase.nextHearing === 'TBD' || !newCase.nextHearing
         ? getDefaultHearingDate()
@@ -431,42 +447,58 @@ export function CasesProvider({
         ? undefined
         : new Date(hearingDate).toISOString().split('T')[0];
 
-    // Generate a case ID
-    const year = new Date().getFullYear();
-    const caseNumber = `KDH/${year}/${String(cases.length + 1).padStart(3, '0')}`;
-
-    const caseToAdd: Case = {
-      ...newCase,
-      id: caseNumber,
-      filed: new Date().toISOString().split('T')[0],
-      updated: 'Just now',
-      documents: [],
-      notes: [],
-      daysLeft: calculateDaysLeft(hearingDate),
-      pages: 0
-    };
-
-    // Add to local state immediately for instant UI update
-    setCases(prev => [...prev, caseToAdd]);
-    localStorage.setItem('court_cases', JSON.stringify([...cases, caseToAdd]));
-
-    // Try to create in backend (don't block UI if it fails)
+    // First, create in backend and wait for response
+    let createdCase: Case;
+    
     try {
-      await casesApi.createCase({
+      const response = await casesApi.createCase({
         title: newCase.title,
         type: newCase.type,
         description: '',
         priority: newCase.priority,
         nextHearing: nextHearingISO,
-        parties: []
+        partyCategory: partyCategory,
+        parties: parties || []
       });
-      // If backend create succeeds, refresh to sync
+
+      
+      if (response.success && response.data) {
+        // Use the backend-generated case data
+        const backendCase = response.data as { id: number; caseNumber: string };
+        
+        // Create case object with backend ID
+        createdCase = {
+          ...newCase,
+          id: backendCase.caseNumber || String(backendCase.id),
+          filed: new Date().toISOString().split('T')[0],
+          updated: 'Just now',
+          documents: [],
+          notes: [],
+          daysLeft: calculateDaysLeft(hearingDate),
+          pages: 0,
+          partyCategory: partyCategory as Case['partyCategory']
+        };
+
+      } else {
+        throw new Error(response.error?.message || 'Failed to create case in backend');
+      }
+      
+      // Refresh to get full case data from backend
       await refresh();
     } catch (err) {
-      console.warn('Backend create failed, case added locally only:', err);
-      // Keep the local case, don't throw error to not block UI
+      console.error('Backend create failed:', err);
+      // If backend fails, throw error so UI can handle it
+      throw err instanceof Error ? err : new Error('Failed to create case in backend');
     }
+
+    // Return the created case for further processing (e.g., document upload)
+    if (!createdCase) {
+      throw new Error('Failed to create case: case data not available');
+    }
+    return createdCase;
+
   };
+
   const updateCase = (id: string, updates: Partial<Case>) => {
     setCases(cases.map(c => c.id === id ? {
       ...c,
@@ -498,7 +530,16 @@ export function CasesProvider({
       updated: 'Just now'
     } : c));
   };
+  const removeDocumentFromCase = (caseId: string, docId: string) => {
+    setCases(cases.map(c => c.id === caseId ? {
+      ...c,
+      documents: c.documents.filter(d => d.id !== docId),
+      pages: Math.max(0, c.pages - 1),
+      updated: 'Just now'
+    } : c));
+  };
   const addNoteToCase = (caseId: string, text: string) => {
+
     const newNote: CaseNote = {
       id: `note-${Date.now()}`,
       text,
@@ -683,7 +724,9 @@ export function CasesProvider({
         deleteCase,
         getCaseById,
         addDocumentToCase,
+        removeDocumentFromCase,
         addNoteToCase,
+
         updateCaseStatus,
         scheduleHearing,
         submitJudgment,

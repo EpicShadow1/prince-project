@@ -216,7 +216,7 @@ router.get('/:id', async (req, res) => {
 // POST /api/cases - Create new case
 router.post('/', authorizeRole('judge', 'registrar', 'admin', 'lawyer'), async (req, res) => {
   try {
-    const { title, type, description, priority, parties, nextHearing } = req.body;
+    const { title, type, description, priority, parties, nextHearing, partyCategory } = req.body;
 
     if (!title || !type) {
       return res.status(400).json({
@@ -228,6 +228,7 @@ router.post('/', authorizeRole('judge', 'registrar', 'admin', 'lawyer'), async (
       });
     }
 
+
     // Generate case number
     const year = new Date().getFullYear();
     const [countResult] = await db.query(
@@ -238,8 +239,8 @@ router.post('/', authorizeRole('judge', 'registrar', 'admin', 'lawyer'), async (
 
     // Insert case
     const [result] = await db.query(
-      `INSERT INTO cases (case_number, title, type, status, priority, description, filed_date, next_hearing, judge_id, created_by, court)
-       VALUES (?, ?, ?, ?, ?, ?, CURDATE(), ?, ?, ?, ?)`,
+      `INSERT INTO cases (case_number, title, type, status, priority, description, filed_date, next_hearing, judge_id, created_by, court, party_category)
+       VALUES (?, ?, ?, ?, ?, ?, CURDATE(), ?, ?, ?, ?, ?)`,
       [
         caseNumber,
         title,
@@ -250,9 +251,11 @@ router.post('/', authorizeRole('judge', 'registrar', 'admin', 'lawyer'), async (
         nextHearing || null,
         req.user.role === 'judge' ? req.user.id : null,
         req.user.id,
-        req.user.department || null
+        req.user.department || null,
+        partyCategory || null
       ]
     );
+
 
     const caseId = result.insertId;
 
@@ -260,15 +263,22 @@ router.post('/', authorizeRole('judge', 'registrar', 'admin', 'lawyer'), async (
     if (parties && parties.length > 0) {
       for (const party of parties) {
         try {
+          // Build contact_info JSON for public parties
+          let contactInfo = null;
+          if (party.contactInfo) {
+            contactInfo = JSON.stringify(party.contactInfo);
+          }
+          
           await db.query(
-            'INSERT INTO case_parties (case_id, role, name, lawyer_id) VALUES (?, ?, ?, ?)',
-            [caseId, party.role, party.name, party.lawyerId || null]
+            'INSERT INTO case_parties (case_id, role, name, lawyer_id, contact_info) VALUES (?, ?, ?, ?, ?)',
+            [caseId, party.role, party.name, party.lawyerId || null, contactInfo]
           );
         } catch (error) {
           console.warn('Case parties table might not exist');
         }
       }
     }
+
 
     // Add timeline entry
     try {
