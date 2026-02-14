@@ -437,7 +437,6 @@ export function CasesProvider({
 
 
   const addCase = async (newCase: Omit<Case, 'id' | 'filed' | 'updated'>, parties?: Array<{role: string, name: string, contactInfo?: {phone?: string, address?: string}}>, partyCategory?: string) => {
-
     const hearingDate =
       newCase.nextHearing === 'TBD' || !newCase.nextHearing
         ? getDefaultHearingDate()
@@ -447,7 +446,25 @@ export function CasesProvider({
         ? undefined
         : new Date(hearingDate).toISOString().split('T')[0];
 
-    // First, create in backend and wait for response
+    // Generate a temporary ID for optimistic update
+    const tempId = `TEMP-${Date.now()}`;
+    
+    // Create optimistic case for immediate UI update
+    const optimisticCase: Case = {
+      ...newCase,
+      id: tempId,
+      filed: new Date().toISOString().split('T')[0],
+      updated: 'Just now',
+      documents: [],
+      notes: [],
+      daysLeft: calculateDaysLeft(hearingDate),
+      pages: 0,
+      partyCategory: partyCategory as Case['partyCategory']
+    };
+
+    // Optimistic update: Add to local state immediately
+    setCases(prev => [optimisticCase, ...prev]);
+
     let createdCase: Case;
     
     try {
@@ -479,24 +496,19 @@ export function CasesProvider({
           partyCategory: partyCategory as Case['partyCategory']
         };
 
+        // Replace optimistic case with real case
+        setCases(prev => prev.map(c => c.id === tempId ? createdCase : c));
       } else {
         throw new Error(response.error?.message || 'Failed to create case in backend');
       }
-      
-      // Refresh to get full case data from backend
-      await refresh();
     } catch (err) {
+      // Remove optimistic case on failure
+      setCases(prev => prev.filter(c => c.id !== tempId));
       console.error('Backend create failed:', err);
-      // If backend fails, throw error so UI can handle it
       throw err instanceof Error ? err : new Error('Failed to create case in backend');
     }
 
-    // Return the created case for further processing (e.g., document upload)
-    if (!createdCase) {
-      throw new Error('Failed to create case: case data not available');
-    }
     return createdCase;
-
   };
 
   const updateCase = (id: string, updates: Partial<Case>) => {
@@ -509,15 +521,25 @@ export function CasesProvider({
     } : c));
   };
   const deleteCase = async (id: string) => {
+    // Store original case for potential rollback
+    const originalCase = cases.find(c => c.id === id);
+    
+    // Optimistic update: Remove from local state immediately
+    setCases(prev => prev.filter(c => c.id !== id));
+    
     try {
       await casesApi.deleteCase(id);
-      // Refresh cases from server to ensure consistency
-      await refresh();
+      // Successfully deleted - no need to refresh
     } catch (err) {
+      // Restore original case on failure
+      if (originalCase) {
+        setCases(prev => [...prev, originalCase]);
+      }
       const message = err instanceof ApiError ? err.message : 'Failed to delete case';
       throw new Error(message);
     }
   };
+
 
   const getCaseById = (id: string) => {
     return cases.find(c => c.id === id);

@@ -5,21 +5,28 @@ import {
   FileText,
   Trash2,
   Users,
-  UserCircle
+  UserCircle,
+  CheckCircle2,
+  Loader2
 } from 'lucide-react';
 
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Select } from './ui/Select';
-import { useCases } from '../contexts/CasesContext';
-
+import { useCases, Case } from '../contexts/CasesContext';
 import { useAuth } from '../contexts/AuthContext';
 import { documentsApi } from '../services/api';
+import { showError, showWarning } from '../hooks/useToast';
+import { CaseCreationSuccess } from './CaseCreationSuccess';
+
+
 
 interface CreateCaseModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: (caseData: Case) => void;
 }
+
 
 type PartyCategory =
   | 'govt-vs-govt'
@@ -31,8 +38,10 @@ type PartyCategory =
 
 export function CreateCaseModal({
   isOpen,
-  onClose
+  onClose,
+  onSuccess
 }: CreateCaseModalProps) {
+
   const { addCase } = useCases();
   const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -63,8 +72,8 @@ export function CreateCaseModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string>('');
 
-
   const isLawyer = user?.role === 'lawyer';
+
   
   const registrars = [
     { value: 'Registrar Bello', label: 'Registrar Bello (High Court 1)' },
@@ -111,12 +120,12 @@ export function CreateCaseModal({
       !formData.priority ||
       !formData.partyCategory
     ) {
-      alert('Please fill in all required fields including Party Category');
+      showWarning('Please fill in all required fields including Party Category');
       return;
     }
 
     if (isLawyer && !formData.registrar) {
-      alert('Please assign a registrar to process this case');
+      showWarning('Please assign a registrar to process this case');
       return;
     }
 
@@ -125,16 +134,17 @@ export function CreateCaseModal({
       isPlaintiffPublic &&
       (!plaintiffInfo.name || !plaintiffInfo.phone || !plaintiffInfo.address)
     ) {
-      alert('Please fill in all Plaintiff (Public) information');
+      showWarning('Please fill in all Plaintiff (Public) information');
       return;
     }
     if (
       isDefendantPublic &&
       (!defendantInfo.name || !defendantInfo.phone || !defendantInfo.address)
     ) {
-      alert('Please fill in all Defendant (Public) information');
+      showWarning('Please fill in all Defendant (Public) information');
       return;
     }
+
 
     setIsSubmitting(true);
     setUploadProgress('Creating case...');
@@ -221,29 +231,47 @@ export function CreateCaseModal({
       setDocuments([]);
 
       setUploadProgress('');
+      onSuccess?.(newCase);
       onClose();
-      
-      alert(isLawyer ? 'Case submitted to registrar for approval!' : 'Case created successfully!');
+
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to create case. Check that the backend is running.');
+
+
+      showError(
+        err instanceof Error 
+          ? err.message 
+          : 'Failed to create case. Check that the backend is running.',
+        8000
+      );
     } finally {
       setIsSubmitting(false);
       setUploadProgress('');
     }
+
   };
 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between p-6 border-b border-slate-200">
-          <h2 className="text-xl font-semibold text-slate-900">
-            Create New Case
-          </h2>
-          <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-full transition-colors">
+        <div className="flex items-center justify-between p-6 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <CheckCircle2 className="h-5 w-5 text-green-600" />
+            </div>
+            <h2 className="text-xl font-semibold text-slate-900">
+              Create New Case
+            </h2>
+          </div>
+          <button 
+            onClick={onClose} 
+            className="p-2 hover:bg-slate-100 rounded-full transition-all duration-200 hover:rotate-90"
+            disabled={isSubmitting}
+          >
             <X className="h-5 w-5 text-slate-500" />
           </button>
         </div>
+
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto max-h-[calc(90vh-140px)]">
           <div className="space-y-4">
@@ -525,16 +553,57 @@ export function CreateCaseModal({
 
         </form>
 
-        <div className="flex justify-end gap-3 p-6 border-t border-slate-200 bg-slate-50">
-          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
+        <div className="flex justify-end gap-3 p-6 border-t border-slate-200 bg-gradient-to-r from-slate-50 to-white">
+          <Button 
+            variant="outline" 
+            onClick={onClose} 
+            disabled={isSubmitting}
+            className="hover:bg-slate-100 transition-colors"
+          >
             Cancel
           </Button>
-          <Button onClick={handleSubmit} isLoading={isSubmitting}>
-            {isSubmitting && uploadProgress ? uploadProgress : (isLawyer ? 'Submit for Approval' : 'Create Case')}
+          <Button 
+            onClick={handleSubmit} 
+            isLoading={isSubmitting}
+            className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+          >
+            {isSubmitting ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {uploadProgress || 'Processing...'}
+              </span>
+            ) : (
+              isLawyer ? 'Submit for Approval' : 'Create Case'
+            )}
           </Button>
         </div>
 
+
       </div>
     </div>
+  );
+}
+
+export function CreateCaseModalWithSuccess(props: CreateCaseModalProps) {
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [createdCase, setCreatedCase] = useState<Case | null>(null);
+  const { user } = useAuth();
+  const isLawyer = user?.role === 'lawyer';
+
+  const handleSuccess = (caseData: Case) => {
+    setCreatedCase(caseData);
+    setShowSuccessModal(true);
+  };
+
+  return (
+    <>
+      <CreateCaseModal {...props} onSuccess={handleSuccess} />
+      <CaseCreationSuccess 
+        isOpen={showSuccessModal} 
+        onClose={() => setShowSuccessModal(false)} 
+        caseData={createdCase}
+        isLawyer={isLawyer}
+      />
+    </>
   );
 }

@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '../../components/layout/Layout';
 import { Card } from '../../components/ui/Card';
@@ -11,7 +12,11 @@ import { BookOpen, Clock, Gavel, FileText, AlertCircle, CheckCircle, Scale, User
 import { useAuth } from '../../contexts/AuthContext';
 import { useCases } from '../../contexts/CasesContext';
 import { usersApi } from '../../services/api';
-import { CreateCaseModal } from '../../components/CreateCaseModal';
+import { CreateCaseModalWithSuccess } from '../../components/CreateCaseModal';
+
+import { showError, showSuccess } from '../../hooks/useToast';
+
+
 
 interface Lawyer {
   id: number;
@@ -21,7 +26,8 @@ interface Lawyer {
   department: string;
 }
 
-export function JudgeDashboard() {
+export default function JudgeDashboard() {
+
   const navigate = useNavigate();
   const { user } = useAuth();
   const {
@@ -39,13 +45,15 @@ export function JudgeDashboard() {
 
   const [selectedCase, setSelectedCase] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [selectedLawyer, setSelectedLawyer] = useState<string>('');
+  const [selectedLawyers, setSelectedLawyers] = useState<Record<string, string>>({});
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+
   const [caseToDelete, setCaseToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [lawyers, setLawyers] = useState<Array<{value: string, label: string}>>([]);
-  const [isAssigning, setIsAssigning] = useState(false);
-  const [assignmentError, setAssignmentError] = useState<string | null>(null);
+  const [assigningCases, setAssigningCases] = useState<Record<string, boolean>>({});
+  const [assignmentErrors, setAssignmentErrors] = useState<Record<string, string>>({});
+
 
 
   // Check if user can delete cases (Chief Judge, Admin, or Court Admin)
@@ -118,24 +126,50 @@ export function JudgeDashboard() {
     };
   }, [user, lawyers.length]);
 
-  const handleAssign = async (caseId: string) => {
-    if (!selectedLawyer) {
-      setAssignmentError('Please select a lawyer first.');
+  // Handle lawyer assignment for a specific case
+  // Uses useCallback to prevent unnecessary re-renders of child components
+  const handleAssign = useCallback(async (caseId: string) => {
+    const lawyerId = selectedLawyers[caseId];
+    if (!lawyerId) {
+      setAssignmentErrors(prev => ({ ...prev, [caseId]: 'Please select a lawyer first.' }));
       return;
     }
     
-    setIsAssigning(true);
-    setAssignmentError(null);
+    setAssigningCases(prev => ({ ...prev, [caseId]: true }));
+    setAssignmentErrors(prev => ({ ...prev, [caseId]: '' }));
     
     try {
-      await assignCaseToLawyer(caseId, selectedLawyer);
-      setSelectedLawyer('');
+      await assignCaseToLawyer(caseId, lawyerId);
+      // Clear the selection for this specific case after successful assignment
+      setSelectedLawyers(prev => ({ ...prev, [caseId]: '' }));
+      // Show success toast notification
+      showSuccess(`Case ${caseId} successfully assigned to lawyer`);
     } catch (err) {
-      setAssignmentError(err instanceof Error ? err.message : 'Failed to assign lawyer');
+
+      setAssignmentErrors(prev => ({ 
+        ...prev, 
+        [caseId]: err instanceof Error ? err.message : 'Failed to assign lawyer' 
+      }));
     } finally {
-      setIsAssigning(false);
+      setAssigningCases(prev => ({ ...prev, [caseId]: false }));
     }
-  };
+  }, [selectedLawyers, assignCaseToLawyer]);
+
+  // Handle lawyer selection change for a specific case
+  // Each case maintains its own independent state entry
+  const handleLawyerChange = useCallback((caseId: string, value: string) => {
+    setSelectedLawyers(prev => ({
+      ...prev,
+      [caseId]: value
+    }));
+    // Clear any existing error for this case when user makes a selection
+    if (value) {
+      setAssignmentErrors(prev => ({ ...prev, [caseId]: '' }));
+    }
+  }, []);
+
+
+
 
   const handleViewDetails = (caseId: string) => {
     navigate(`/cases/${encodeURIComponent(caseId)}`);
@@ -162,8 +196,9 @@ export function JudgeDashboard() {
       setCaseToDelete(null);
       setSelectedCase(null);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete case');
+      showError(err instanceof Error ? err.message : 'Failed to delete case');
     } finally {
+
       setIsDeleting(false);
     }
   };
@@ -257,12 +292,7 @@ export function JudgeDashboard() {
                 </Button>
               </div>
 
-              {assignmentError && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4" />
-                  {assignmentError}
-                </div>
-              )}
+
 
               <div className="space-y-3 sm:space-y-4">
                 {casesLoading ? (
@@ -293,26 +323,37 @@ export function JudgeDashboard() {
                         </p>
                       </div>
 
-                      <div className="flex items-center gap-2 w-full sm:w-auto">
-                        <div className="w-full sm:w-48">
-                          <Select 
-                            options={lawyers} 
-                            placeholder="Select Lawyer..." 
-                            className="w-full text-sm" 
-                            value={selectedLawyer} 
-                            onChange={e => setSelectedLawyer(e.target.value)} 
-                            disabled={isAssigning} 
-                          />
+                      <div className="flex flex-col gap-2 w-full sm:w-auto">
+                        {assignmentErrors[c.id] && (
+                          <div className="p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700 flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3" />
+                            {assignmentErrors[c.id]}
+                          </div>
+                        )}
+                          <div className="flex items-center gap-2">
+                          <div className="w-full sm:w-48">
+                            <Select 
+                              options={lawyers} 
+                              placeholder="Select Lawyer..." 
+                              className="w-full text-sm" 
+                              value={selectedLawyers[c.id] || ''} 
+                              onChange={e => handleLawyerChange(c.id, e.target.value)} 
+                              disabled={assigningCases[c.id]} 
+                            />
+                          </div>
+                          <Button 
+                            size="sm" 
+                            onClick={() => handleAssign(c.id)} 
+                            isLoading={assigningCases[c.id]} 
+                            disabled={assigningCases[c.id]}
+                          >
+                            Assign
+                          </Button>
                         </div>
-                        <Button 
-                          size="sm" 
-                          onClick={() => handleAssign(c.id)} 
-                          isLoading={isAssigning} 
-                          disabled={isAssigning}
-                        >
-                          Assign
-                        </Button>
+
                       </div>
+
+
                     </div>
                   ))
                 ) : (
@@ -517,7 +558,8 @@ export function JudgeDashboard() {
         </div>
       </div>
 
-      <CreateCaseModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} />
+      <CreateCaseModalWithSuccess isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} />
+
       
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (

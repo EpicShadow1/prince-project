@@ -6,7 +6,10 @@ import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { ArrowLeft, PenTool, FileText, Check, X } from 'lucide-react';
 import { useCases, Order } from '../contexts/CasesContext';
-export function SignOrdersPage() {
+import { showSuccess } from '../hooks/useToast';
+
+export default function SignOrdersPage() {
+
   const navigate = useNavigate();
   const { orders, signOrder } = useCases();
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -16,8 +19,9 @@ export function SignOrdersPage() {
     if (confirm('Apply digital signature to this order?')) {
       signOrder(id);
       setSelectedOrder(null);
-      alert('Order signed and dispatched successfully!');
+      showSuccess('Order signed and dispatched successfully!');
     }
+
   };
   return (
     <Layout title="Sign Orders" showLogoBanner={false}>

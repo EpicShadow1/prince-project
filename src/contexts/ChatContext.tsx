@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState, createContext, useContext, type ReactNode
 
 import { useAuth } from './AuthContext';
 import { useStaff } from './StaffContext';
+import { useSocket } from './SocketContext';
 import { chatApi } from '../services/api';
+
 
 export interface ChatMessage {
   id: string;
@@ -43,6 +45,11 @@ export function ChatProvider({
   const {
     staff
   } = useStaff();
+  const {
+    sendChat,
+    markRead,
+    onChatMessage
+  } = useSocket();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -71,16 +78,69 @@ export function ChatProvider({
     };
 
     loadChatData();
-
-    // Poll for new messages every 30 seconds
-    const interval = setInterval(loadChatData, 30000);
-    return () => clearInterval(interval);
   }, [user]);
+
+  // Listen for real-time chat messages via WebSocket
+  useEffect(() => {
+    if (!user) return;
+
+    const unsubscribe = onChatMessage((message) => {
+      console.log('[CHAT] Received real-time message:', message);
+      
+      // Add message to local state
+      setMessages(prev => {
+        // Avoid duplicates
+        if (prev.some(m => m.id === message.id)) return prev;
+        return [...prev, message];
+      });
+
+      // Update conversations
+      setConversations(prev => {
+        const senderId = message.senderId;
+        const existingConv = prev.find(c => c.userId === senderId);
+        
+        if (existingConv) {
+          return prev.map(c => c.userId === senderId ? {
+            ...c,
+            lastMessage: message.message,
+            lastMessageTime: message.timestamp,
+            unreadCount: message.read ? c.unreadCount : c.unreadCount + 1
+          } : c).sort((a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime());
+        } else {
+          // Find sender details from staff
+          const sender = staff.find(s => s.id === senderId);
+          const newConv: ChatConversation = {
+            userId: senderId,
+            userName: message.senderName || sender?.name || 'Unknown',
+            userRole: sender?.role || 'Unknown',
+            lastMessage: message.message,
+            lastMessageTime: message.timestamp,
+            unreadCount: 1
+          };
+          return [newConv, ...prev];
+        }
+      });
+
+      // Update unread count
+      if (!message.read && message.receiverId === user.staffId) {
+        setUnreadCount(prev => prev + 1);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [user, onChatMessage, staff]);
+
 
   const sendMessage = async (receiverId: string, receiverName: string, message: string) => {
     if (!user) return;
     
     try {
+      // Send via WebSocket for real-time delivery
+      sendChat(receiverId, user.staffId, user.name, message);
+      
+      // Also send via API for persistence
       const response = await chatApi.sendMessage(receiverId, message);
       
       if (response.success) {
@@ -97,46 +157,54 @@ export function ChatProvider({
         };
         setMessages(prev => [...prev, newMessage]);
         
-        // Refresh conversations
-        const conversationsRes = await chatApi.getConversations();
-        if (conversationsRes.success && conversationsRes.data) {
-          setConversations(conversationsRes.data as ChatConversation[]);
-        }
+        // Update conversations optimistically
+        setConversations(prev => {
+          const existingConv = prev.find(c => c.userId === receiverId);
+          if (existingConv) {
+            return prev.map(c => c.userId === receiverId ? {
+              ...c,
+              lastMessage: message,
+              lastMessageTime: newMessage.timestamp
+            } : c).sort((a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime());
+          }
+          return prev;
+        });
       }
     } catch (error) {
       console.error('Failed to send message:', error);
     }
   };
 
+
   const markAsRead = async (userId: string) => {
     if (!user) return;
     
     try {
+      // Send via WebSocket
+      markRead(userId, user.staffId);
+      
+      // Also send via API
       await chatApi.markAsRead(userId);
       
-      // Update local state
+      // Update local state optimistically
       setMessages(prev => prev.map(msg => msg.senderId === userId && msg.receiverId === user.staffId && !msg.read ? {
         ...msg,
         read: true
       } : msg));
       
-      // Refresh conversations and unread count
-      const [conversationsRes, unreadRes] = await Promise.all([
-        chatApi.getConversations(),
-        chatApi.getUnreadCount()
-      ]);
+      // Update conversations optimistically
+      setConversations(prev => prev.map(c => c.userId === userId ? {
+        ...c,
+        unreadCount: 0
+      } : c));
       
-      if (conversationsRes.success && conversationsRes.data) {
-        setConversations(conversationsRes.data as ChatConversation[]);
-      }
-      
-      if (unreadRes.success && unreadRes.data) {
-        setUnreadCount((unreadRes.data as { count: number }).count);
-      }
+      // Recalculate unread count
+      setUnreadCount(prev => Math.max(0, prev - (conversations.find(c => c.userId === userId)?.unreadCount || 0)));
     } catch (error) {
       console.error('Failed to mark messages as read:', error);
     }
   };
+
 
   const getConversationMessages = async (userId: string): Promise<ChatMessage[]> => {
     if (!user) return [];

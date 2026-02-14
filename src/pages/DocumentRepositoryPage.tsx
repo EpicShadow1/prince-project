@@ -7,7 +7,9 @@ import { Badge } from '../components/ui/Badge';
 import { FileText, Folder, UploadCloud, Search, MoreHorizontal, Download, File, Image as ImageIcon, X, Eye } from 'lucide-react';
 import { useCases, CaseDocument } from '../contexts/CasesContext';
 import { useAuth } from '../contexts/AuthContext';
-export function DocumentRepositoryPage() {
+import { showSuccess, showWarning } from '../hooks/useToast';
+export default function DocumentRepositoryPage() {
+
   const { cases, addDocumentToCase } = useCases();
   const { user } = useAuth();
   const [dragActive, setDragActive] = useState(false);
@@ -81,7 +83,7 @@ export function DocumentRepositoryPage() {
   };
   const handleFiles = (files: FileList) => {
     if (!selectedCaseId) {
-      alert('Please select a case to upload the document to');
+      showWarning('Please select a case to upload the document to');
       return;
     }
     setUploading(true);
@@ -97,7 +99,7 @@ export function DocumentRepositoryPage() {
       };
       addDocumentToCase(selectedCaseId, newDocument);
       setUploading(false);
-      alert(`File uploaded successfully to case ${selectedCaseId} as ${selectedCategory}!`);
+      showSuccess(`File uploaded successfully to case ${selectedCaseId} as ${selectedCategory}!`);
       setSelectedCaseId('');
     }, 1500);
   };
@@ -240,7 +242,7 @@ export function DocumentRepositoryPage() {
                     <Button size="sm" variant="ghost" title="Preview" onClick={(e) => { e.stopPropagation(); setSelectedDoc(doc); }}>
                       <Eye className="h-4 w-4" />
                     </Button>
-                    <Button size="sm" variant="ghost" title="Download" onClick={(e) => { e.stopPropagation(); alert(`Downloading ${doc.name}`); }}>
+                    <Button size="sm" variant="ghost" title="Download" onClick={(e) => { e.stopPropagation(); showSuccess(`Downloading ${doc.name}`); }}>
                       <Download className="h-4 w-4" />
                     </Button>
                     <Button size="sm" variant="ghost">
@@ -294,7 +296,7 @@ export function DocumentRepositoryPage() {
                   In a real application, this would display the PDF or document
                   content.
                 </p>
-                <Button onClick={() => { window.open(`#view-document-${selectedDoc.id}`, '_blank'); alert(`Opening ${selectedDoc.name} in external viewer`); }}>
+                <Button onClick={() => { window.open(`#view-document-${selectedDoc.id}`, '_blank'); showSuccess(`Opening ${selectedDoc.name} in external viewer`); }}>
                   <Download className="h-4 w-4 mr-2" />
                   Open in External Viewer
                 </Button>

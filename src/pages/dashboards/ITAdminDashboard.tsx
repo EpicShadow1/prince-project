@@ -41,7 +41,8 @@ function RoleDistributionItem({ label, count, color, total }: RoleDistributionIt
   );
 }
 
-export function ITAdminDashboard() {
+export default function ITAdminDashboard() {
+
   return <Layout title="System Control Center" showLogoBanner={false}>
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

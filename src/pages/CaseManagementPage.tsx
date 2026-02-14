@@ -17,7 +17,8 @@ import { useCases } from '../contexts/CasesContext';
 import { useAuth } from '../contexts/AuthContext';
 import { CreateCaseModal } from '../components/CreateCaseModal';
 
-export function CaseManagementPage() {
+export default function CaseManagementPage() {
+
   const navigate = useNavigate();
   const { cases, isLoading, error, refresh } = useCases();
   const { user } = useAuth();

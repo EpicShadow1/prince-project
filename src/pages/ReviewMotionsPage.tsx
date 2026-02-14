@@ -14,7 +14,9 @@ import {
   Download } from
 'lucide-react';
 import { useCases, Motion } from '../contexts/CasesContext';
-export function ReviewMotionsPage() {
+import { showSuccess } from '../hooks/useToast';
+export default function ReviewMotionsPage() {
+
   const navigate = useNavigate();
   const { motions, updateMotionStatus } = useCases();
   const [selectedMotion, setSelectedMotion] = useState<Motion | null>(null);
@@ -25,7 +27,7 @@ export function ReviewMotionsPage() {
     confirm(`Are you sure you want to ${action.toLowerCase()} this motion?`))
     {
       updateMotionStatus(id, action);
-      alert(`Motion ${action.toLowerCase()} successfully!`);
+      showSuccess(`Motion ${action.toLowerCase()} successfully!`);
     }
   };
   return (
@@ -148,9 +150,9 @@ export function ReviewMotionsPage() {
                   In a real application, this would display the PDF content.
                 </p>
                 <Button
-                onClick={() =>
-                alert(`Downloading ${selectedMotion.documentUrl}`)
-                }>
+                onClick={() => {
+                  showSuccess(`Downloading ${selectedMotion.documentUrl}`);
+                }}>
 
                   <Download className="h-4 w-4 mr-2" />
                   Download to View

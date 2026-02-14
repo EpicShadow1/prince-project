@@ -8,6 +8,7 @@ import { FileText, Upload, Download, CheckCircle, Printer, Mail, FolderOpen, X, 
 import { useCases, CaseDocument } from '../../contexts/CasesContext';
 import { useSystem } from '../../contexts/SystemContext';
 import { useStaff } from '../../contexts/StaffContext';
+import { showSuccess, showWarning } from '../../hooks/useToast';
 interface Task {
   id: string;
   task: string;
@@ -18,7 +19,8 @@ interface Task {
   document?: CaseDocument;
   judge: string;
 }
-export function ClerkDashboard() {
+export default function ClerkDashboard() {
+
   const navigate = useNavigate();
   const {
     cases
@@ -105,7 +107,7 @@ export function ClerkDashboard() {
     if (task.document) {
       setSelectedDocument(task.document);
     } else {
-      alert('No document available for this task');
+      showWarning('No document available for this task');
     }
   };
   const handleCompleteTask = (taskId: string) => {
@@ -119,7 +121,7 @@ export function ClerkDashboard() {
   };
   const handleOpenExternalViewer = (doc: CaseDocument) => {
     window.open(`#view-document-${doc.id}`, '_blank');
-    alert(`Opening ${doc.name} in external viewer`);
+    showSuccess(`Opening ${doc.name} in external viewer`);
   };
   const handleSendReminder = (caseItem: (typeof judgeCases)[0]) => {
     addSystemNotification({
@@ -128,11 +130,11 @@ export function ClerkDashboard() {
       type: 'info',
       createdBy: 'Court Clerk'
     });
-    alert(`Reminder sent for case ${caseItem.id} to all participants!`);
+    showSuccess(`Reminder sent for case ${caseItem.id} to all participants!`);
   };
   const handleSendNotices = () => {
     if (selectedRecipients.length === 0 || !noticeMessage.trim()) {
-      alert('Please select recipients and enter a message');
+      showWarning('Please select recipients and enter a message');
       return;
     }
     selectedRecipients.forEach(recipientId => {
@@ -146,7 +148,7 @@ export function ClerkDashboard() {
         });
       }
     });
-    alert(`Notices sent to ${selectedRecipients.length} recipient(s)!`);
+    showSuccess(`Notices sent to ${selectedRecipients.length} recipient(s)!`);
     setShowSendNoticesModal(false);
     setSelectedRecipients([]);
     setNoticeMessage('');

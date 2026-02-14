@@ -3,7 +3,8 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { ArrowRightLeft, Shield, Activity, Search } from 'lucide-react';
-export function PartnerDashboard() {
+export default function PartnerDashboard() {
+
   const transfers = [{
     id: 'TRX-8829',
     type: 'Warrant Request',

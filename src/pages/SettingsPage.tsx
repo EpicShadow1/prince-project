@@ -5,7 +5,10 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { User, Lock, Bell, Camera, Save } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-export function SettingsPage() {
+import { showSuccess, showError } from '../hooks/useToast';
+
+export default function SettingsPage() {
+
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'preferences'>('profile');
   const [isLoading, setIsLoading] = useState(false);
@@ -29,15 +32,17 @@ export function SettingsPage() {
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
-      alert('Profile updated successfully!');
+      showSuccess('Profile updated successfully!');
     }, 1000);
+
   };
   const handlePasswordUpdate = (e: React.FormEvent) => {
     e.preventDefault();
     if (passwords.new !== passwords.confirm) {
-      alert('New passwords do not match!');
+      showError('New passwords do not match!');
       return;
     }
+
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
@@ -46,8 +51,9 @@ export function SettingsPage() {
         new: '',
         confirm: ''
       });
-      alert('Password updated successfully!');
+      showSuccess('Password updated successfully!');
     }, 1000);
+
   };
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -286,9 +292,10 @@ export function SettingsPage() {
                 )}
                 </div>
                 <div className="pt-4 border-t border-slate-100">
-                  <Button type="button" onClick={() => alert('Preferences saved!')}>
+                  <Button type="button" onClick={() => showSuccess('Preferences saved!')}>
                     Save Preferences
                   </Button>
+
                 </div>
               </div>
             </Card>

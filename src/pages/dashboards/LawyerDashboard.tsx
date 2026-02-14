@@ -16,7 +16,10 @@ import {
 import { useCases, Case } from '../../contexts/CasesContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { casesApi, documentsApi, notificationsApi } from '../../services/api';
-export function LawyerDashboard() {
+import { showSuccess, showError } from '../../hooks/useToast';
+
+export default function LawyerDashboard() {
+
   const navigate = useNavigate();
   const { cases, refresh } = useCases();
   const { user } = useAuth();
@@ -94,28 +97,30 @@ export function LawyerDashboard() {
     try {
       const response = await casesApi.requestCaseAssignment(caseId);
       if (response.success) {
-        alert('Assignment request submitted successfully. A judge will review your request.');
+        showSuccess('Assignment request submitted successfully. A judge will review your request.');
         // Refresh cases to update the UI immediately
         await refresh();
       } else {
-        alert('Failed to submit assignment request. Please try again.');
+        showError('Failed to submit assignment request. Please try again.');
       }
+
   } catch (error: unknown) {
     console.error('Assignment request error:', error);
     const err = error as { code?: string; status?: number };
     if (err.code === 'ALREADY_ASSIGNED') {
-      alert('This case is already assigned to a lawyer.');
+      showError('This case is already assigned to a lawyer.');
       // Refresh cases to update the UI immediately
       await refresh();
     } else if (err.code === 'REQUEST_EXISTS') {
-      alert('You already have a pending assignment request for this case.');
+      showError('You already have a pending assignment request for this case.');
     } else if (err.status === 400) {
-      alert('Unable to request assignment for this case. It may already be assigned.');
+      showError('Unable to request assignment for this case. It may already be assigned.');
       // Refresh cases to update the UI immediately
       await refresh();
     } else {
-      alert('Failed to submit assignment request. Please check your connection and try again.');
+      showError('Failed to submit assignment request. Please check your connection and try again.');
     }
+
   }
   };
 

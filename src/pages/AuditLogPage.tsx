@@ -44,7 +44,8 @@ interface BackendAuditLog {
   details: Record<string, unknown> | null;
 }
 
-export function AuditLogPage() {
+export default function AuditLogPage() {
+
   const navigate = useNavigate();
   const { cases } = useCases();
   const [activeTab, setActiveTab] = useState<'logs' | 'cases'>('logs');

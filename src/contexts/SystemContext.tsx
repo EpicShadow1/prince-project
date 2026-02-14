@@ -1,17 +1,20 @@
 import { useEffect, useState, createContext, useContext, type ReactNode } from 'react';
 
 import { useAuth } from './AuthContext';
+import { useSocket } from './SocketContext';
+
 export interface SystemNotification {
   id: string;
   title: string;
   message: string;
   type: 'info' | 'warning' | 'maintenance' | 'success' | 'chat';
   createdAt: string;
-  createdBy: string;
+  createdBy?: string;
   recipientId?: string; // Optional field for targeted notifications
   senderId?: string; // For chat notifications
   senderName?: string; // For chat notifications
 }
+
 
 interface SystemSettings {
   maintenanceMode: boolean;
@@ -45,6 +48,10 @@ export function SystemProvider({
   const {
     user
   } = useAuth();
+  const {
+    onNotification
+  } = useSocket();
+
   const [settings, setSettings] = useState<SystemSettings>(() => {
     const saved = localStorage.getItem('system_settings');
     return saved ? JSON.parse(saved) : INITIAL_SETTINGS;
@@ -59,6 +66,33 @@ export function SystemProvider({
   useEffect(() => {
     localStorage.setItem('system_notifications', JSON.stringify(notifications));
   }, [notifications]);
+
+  // Listen for real-time notifications via WebSocket
+  useEffect(() => {
+    if (!user) return;
+
+    const unsubscribe = onNotification((notification) => {
+      console.log('[NOTIFICATION] Received real-time notification:', notification);
+      
+      // Add notification to local state
+      const newNotification: SystemNotification = {
+        ...notification,
+        id: notification.id || `notif-${Date.now()}`,
+        createdAt: notification.createdAt || new Date().toISOString()
+      };
+      
+      setNotifications(prev => {
+        // Avoid duplicates
+        if (prev.some(n => n.id === newNotification.id)) return prev;
+        return [newNotification, ...prev];
+      });
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [user, onNotification]);
+
   // Check if maintenance mode should be automatically disabled
   useEffect(() => {
     if (settings.maintenanceMode && settings.maintenanceStartTime) {

@@ -4,6 +4,7 @@ import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Select } from './ui/Select';
 import { useCases, Case } from '../contexts/CasesContext';
+import { showSuccess, showWarning } from '../hooks/useToast';
 
 interface EditCaseModalProps {
   isOpen: boolean;
@@ -54,7 +55,7 @@ export function EditCaseModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title || !formData.type || !formData.priority) {
-      alert('Please fill in all required fields');
+      showWarning('Please fill in all required fields');
       return;
     }
     setIsSubmitting(true);
@@ -70,7 +71,7 @@ export function EditCaseModal({
       });
       setIsSubmitting(false);
       onClose();
-      alert('Case updated successfully!');
+      showSuccess('Case updated successfully!');
     }, 800);
   };
 

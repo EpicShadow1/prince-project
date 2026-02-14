@@ -1,43 +1,68 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, Suspense, lazy } from 'react';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { CasesProvider } from './contexts/CasesContext';
 import { StaffProvider } from './contexts/StaffContext';
 import { SystemProvider } from './contexts/SystemContext';
 import { ChatProvider } from './contexts/ChatContext';
+import { SocketProvider } from './contexts/SocketContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { ChatWidget } from './components/ChatWidget';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { ToastContainer } from './components/ui/Toast';
+import { useToast } from './hooks/useToast';
+import { queryClient } from './queryClient';
+import { initPerformanceMonitoring } from './utils/performance';
 
+
+// Eagerly load critical pages
 import { LoginPage } from './pages/LoginPage';
 import { SignUpPage } from './pages/SignUpPage';
 import { WelcomePage } from './pages/WelcomePage';
-// Dashboards
-import { JudgeDashboard } from './pages/dashboards/JudgeDashboard';
-import { RegistrarDashboard } from './pages/dashboards/RegistrarDashboard';
-import { ClerkDashboard } from './pages/dashboards/ClerkDashboard';
-import { AdminDashboard } from './pages/dashboards/AdminDashboard';
-import { LawyerDashboard } from './pages/dashboards/LawyerDashboard';
-import { PartnerDashboard } from './pages/dashboards/PartnerDashboard';
-import { CourtAdminDashboard } from './pages/dashboards/CourtAdminDashboard';
-import { ITAdminDashboard } from './pages/dashboards/ITAdminDashboard';
-import { AuditorDashboard } from './pages/dashboards/AuditorDashboard';
 
-// Functional Pages
-import { CaseManagementPage } from './pages/CaseManagementPage';
-import { DocumentRepositoryPage } from './pages/DocumentRepositoryPage';
-import { StaffRegistrationPage } from './pages/StaffRegistrationPage';
-import { ReportsPage } from './pages/ReportsPage';
-import { AuditLogPage } from './pages/AuditLogPage';
-import { PartnerInteroperabilityPage } from './pages/PartnerInteroperabilityPage';
-import { CaseDetailPage } from './pages/CaseDetailPage';
-// New Pages
-import { SettingsPage } from './pages/SettingsPage';
-import { WriteJudgmentPage } from './pages/WriteJudgmentPage';
-import { ReviewMotionsPage } from './pages/ReviewMotionsPage';
-import { SignOrdersPage } from './pages/SignOrdersPage';
-import { CalendarPage } from './pages/CalendarPage';
+// Lazy load dashboard components (heavy)
+const JudgeDashboard = lazy(() => import('./pages/dashboards/JudgeDashboard'));
+const RegistrarDashboard = lazy(() => import('./pages/dashboards/RegistrarDashboard'));
+const ClerkDashboard = lazy(() => import('./pages/dashboards/ClerkDashboard'));
+const AdminDashboard = lazy(() => import('./pages/dashboards/AdminDashboard'));
+const LawyerDashboard = lazy(() => import('./pages/dashboards/LawyerDashboard'));
+const PartnerDashboard = lazy(() => import('./pages/dashboards/PartnerDashboard'));
+const CourtAdminDashboard = lazy(() => import('./pages/dashboards/CourtAdminDashboard'));
+const ITAdminDashboard = lazy(() => import('./pages/dashboards/ITAdminDashboard'));
+const AuditorDashboard = lazy(() => import('./pages/dashboards/AuditorDashboard'));
+
+// Lazy load functional pages
+const CaseManagementPage = lazy(() => import('./pages/CaseManagementPage'));
+const DocumentRepositoryPage = lazy(() => import('./pages/DocumentRepositoryPage'));
+const StaffRegistrationPage = lazy(() => import('./pages/StaffRegistrationPage'));
+const ReportsPage = lazy(() => import('./pages/ReportsPage'));
+const AuditLogPage = lazy(() => import('./pages/AuditLogPage'));
+const PartnerInteroperabilityPage = lazy(() => import('./pages/PartnerInteroperabilityPage'));
+const CaseDetailPage = lazy(() => import('./pages/CaseDetailPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const WriteJudgmentPage = lazy(() => import('./pages/WriteJudgmentPage'));
+const ReviewMotionsPage = lazy(() => import('./pages/ReviewMotionsPage'));
+const SignOrdersPage = lazy(() => import('./pages/SignOrdersPage'));
+const CalendarPage = lazy(() => import('./pages/CalendarPage'));
+
+// Initialize performance monitoring
+initPerformanceMonitoring();
+
+
+// Loading fallback component
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="flex flex-col items-center gap-4">
+      <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      <p className="text-secondary text-sm">Loading...</p>
+    </div>
+  </div>
+);
 
 function DashboardRouter() {
+
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -66,23 +91,60 @@ function DashboardRouter() {
   // Route to role-specific dashboard
   switch (user.role) {
     case 'judge':
-      return <JudgeDashboard />;
+      return (
+        <Suspense fallback={<PageLoader />}>
+          <JudgeDashboard />
+        </Suspense>
+      );
     case 'registrar':
-      return <RegistrarDashboard />;
+      return (
+        <Suspense fallback={<PageLoader />}>
+          <RegistrarDashboard />
+        </Suspense>
+      );
     case 'clerk':
-      return <ClerkDashboard />;
+      return (
+        <Suspense fallback={<PageLoader />}>
+          <ClerkDashboard />
+        </Suspense>
+      );
     case 'admin':
-      return <AdminDashboard />;
+      return (
+        <Suspense fallback={<PageLoader />}>
+          <AdminDashboard />
+        </Suspense>
+      );
     case 'it_admin':
-      return <ITAdminDashboard />;
+      return (
+        <Suspense fallback={<PageLoader />}>
+          <ITAdminDashboard />
+        </Suspense>
+      );
     case 'court_admin':
-      return <CourtAdminDashboard />;
+      return (
+        <Suspense fallback={<PageLoader />}>
+          <CourtAdminDashboard />
+        </Suspense>
+      );
     case 'auditor':
-      return <AuditorDashboard />;
+      return (
+        <Suspense fallback={<PageLoader />}>
+          <AuditorDashboard />
+        </Suspense>
+      );
     case 'lawyer':
-      return <LawyerDashboard />;
+      return (
+        <Suspense fallback={<PageLoader />}>
+          <LawyerDashboard />
+        </Suspense>
+      );
     case 'partner':
-      return <PartnerDashboard />;
+      return (
+        <Suspense fallback={<PageLoader />}>
+          <PartnerDashboard />
+        </Suspense>
+      );
+
     default:
       return <Navigate to="/login" replace />;
   }
@@ -90,12 +152,16 @@ function DashboardRouter() {
 function AppContent() {
   const { user } = useAuth();
   const location = useLocation();
+  const { toasts, removeToast } = useToast();
+  
   // Only show chat widget if user is logged in and not on public pages
   const showChat =
   user && !['/', '/login', '/signup'].includes(location.pathname);
   return (
     <>
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
       <Routes>
+
 
         <Route path="/" element={<WelcomePage />} />
         <Route path="/login" element={<LoginPage />} />
@@ -114,97 +180,157 @@ function AppContent() {
           path="/cases"
           element={
           <ProtectedRoute>
-              <CaseManagementPage />
+            <ErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <CaseManagementPage />
+              </Suspense>
+            </ErrorBoundary>
             </ProtectedRoute>
           } />
+
 
         <Route
           path="/cases/:id"
           element={
           <ProtectedRoute>
-              <CaseDetailPage />
+            <ErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <CaseDetailPage />
+              </Suspense>
+            </ErrorBoundary>
             </ProtectedRoute>
           } />
+
 
         <Route
           path="/documents"
           element={
           <ProtectedRoute>
-              <DocumentRepositoryPage />
+            <ErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <DocumentRepositoryPage />
+              </Suspense>
+            </ErrorBoundary>
             </ProtectedRoute>
           } />
+
 
         <Route
           path="/staff"
           element={
           <ProtectedRoute>
-              <StaffRegistrationPage />
+            <ErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <StaffRegistrationPage />
+              </Suspense>
+            </ErrorBoundary>
             </ProtectedRoute>
           } />
+
 
         <Route
           path="/reports"
           element={
           <ProtectedRoute>
-              <ReportsPage />
+            <ErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <ReportsPage />
+              </Suspense>
+            </ErrorBoundary>
             </ProtectedRoute>
           } />
+
 
         <Route
           path="/audit"
           element={
           <ProtectedRoute>
-              <AuditLogPage />
+            <ErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <AuditLogPage />
+              </Suspense>
+            </ErrorBoundary>
             </ProtectedRoute>
           } />
+
 
         <Route
           path="/interoperability"
           element={
           <ProtectedRoute>
-              <PartnerInteroperabilityPage />
+            <ErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <PartnerInteroperabilityPage />
+              </Suspense>
+            </ErrorBoundary>
             </ProtectedRoute>
           } />
+
 
         <Route
           path="/settings"
           element={
           <ProtectedRoute>
-              <SettingsPage />
+            <ErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <SettingsPage />
+              </Suspense>
+            </ErrorBoundary>
             </ProtectedRoute>
           } />
+
 
         <Route
           path="/write-judgment"
           element={
           <ProtectedRoute>
-              <WriteJudgmentPage />
+            <ErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <WriteJudgmentPage />
+              </Suspense>
+            </ErrorBoundary>
             </ProtectedRoute>
           } />
+
 
         <Route
           path="/review-motions"
           element={
           <ProtectedRoute>
-              <ReviewMotionsPage />
+            <ErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <ReviewMotionsPage />
+              </Suspense>
+            </ErrorBoundary>
             </ProtectedRoute>
           } />
+
 
         <Route
           path="/sign-orders"
           element={
           <ProtectedRoute>
-              <SignOrdersPage />
+            <ErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <SignOrdersPage />
+              </Suspense>
+            </ErrorBoundary>
             </ProtectedRoute>
           } />
+
 
         <Route
           path="/calendar"
           element={
           <ProtectedRoute>
-              <CalendarPage />
+            <ErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <CalendarPage />
+              </Suspense>
+            </ErrorBoundary>
             </ProtectedRoute>
           } />
+
 
         <Route path="*" element={<Navigate to="/" replace />} />
 
@@ -217,23 +343,28 @@ function AppContent() {
 }
 export function App() {
   return (
-    <AuthProvider>
-      <SystemProvider>
-        <StaffProvider>
-          <CasesProvider>
-            <ChatProvider>
-              <Router
-                future={{
-                  v7_startTransition: true,
-                  v7_relativeSplatPath: true,
-                }}
-              >
-                <AppContent />
-              </Router>
-            </ChatProvider>
-          </CasesProvider>
-        </StaffProvider>
-      </SystemProvider>
-    </AuthProvider>);
-
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <SocketProvider>
+          <SystemProvider>
+            <StaffProvider>
+              <CasesProvider>
+                <ChatProvider>
+                  <Router
+                    future={{
+                      v7_startTransition: true,
+                      v7_relativeSplatPath: true,
+                    }}
+                  >
+                    <AppContent />
+                  </Router>
+                </ChatProvider>
+              </CasesProvider>
+            </StaffProvider>
+          </SystemProvider>
+        </SocketProvider>
+      </AuthProvider>
+      {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
+    </QueryClientProvider>
+  );
 }

@@ -11,8 +11,10 @@ import { useStaff, StaffMember } from '../../contexts/StaffContext';
 import { useCases } from '../../contexts/CasesContext';
 import { useSystem } from '../../contexts/SystemContext';
 import { auditLogsApi, ApiError } from '../../services/api';
+import { showSuccess, showWarning, showError } from '../../hooks/useToast';
 
-export function AdminDashboard() {
+export default function AdminDashboard() {
+
   const navigate = useNavigate();
   const { staff, deleteStaff, approveStaff } = useStaff();
   const { cases } = useCases();
@@ -124,7 +126,7 @@ export function AdminDashboard() {
   };
   const handleSendNotification = () => {
     if (!notificationTitle || !notificationMessage) {
-      alert('Please fill in both title and message');
+      showWarning('Please fill in both title and message');
       return;
     }
     addSystemNotification({
@@ -136,7 +138,7 @@ export function AdminDashboard() {
     setNotificationTitle('');
     setNotificationMessage('');
     setShowNotificationModal(false);
-    alert('Notification sent to all users!');
+    showSuccess('Notification sent to all users!');
   };
 
   const handleDeleteUser = async (e: React.MouseEvent, userId: string, userName: string) => {
@@ -150,9 +152,9 @@ export function AdminDashboard() {
           type: 'warning',
           createdBy: 'System Administrator'
         });
-        alert(`User "${userName}" has been deleted successfully.`);
+        showSuccess(`User "${userName}" has been deleted successfully.`);
       } catch (error) {
-        alert(`Failed to delete user "${userName}". Please try again.`);
+        showError(`Failed to delete user "${userName}". Please try again.`);
       }
     }
   };
@@ -169,9 +171,9 @@ export function AdminDashboard() {
           type: 'success',
           createdBy: 'System Administrator'
         });
-        alert(`User "${userName}" has been approved successfully.`);
+        showSuccess(`User "${userName}" has been approved successfully.`);
       } catch (error) {
-        alert(`Failed to approve user "${userName}". Please try again.`);
+        showError(`Failed to approve user "${userName}". Please try again.`);
       }
     }
   };

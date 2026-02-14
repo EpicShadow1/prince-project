@@ -6,7 +6,10 @@ import { Button } from '../components/ui/Button';
 import { Select } from '../components/ui/Select';
 import { ArrowLeft, Save, Send, FileText, Eye } from 'lucide-react';
 import { useCases } from '../contexts/CasesContext';
-export function WriteJudgmentPage() {
+import { showSuccess, showError } from '../hooks/useToast';
+
+export default function WriteJudgmentPage() {
+
   const navigate = useNavigate();
   const { cases, submitJudgment } = useCases();
   const [selectedCaseId, setSelectedCaseId] = useState('');
@@ -24,14 +27,16 @@ export function WriteJudgmentPage() {
     setIsSaving(true);
     setTimeout(() => {
       setIsSaving(false);
-      alert('Draft saved successfully!');
+      showSuccess('Draft saved successfully!');
     }, 1000);
   };
+
   const handleSubmit = () => {
     if (!selectedCaseId || !judgmentText) {
-      alert('Please select a case and write judgment content.');
+      showError('Please select a case and write judgment content.');
       return;
     }
+
     if (
     confirm(
       'Are you sure you want to submit this judgment? This action will CLOSE the case.'
@@ -41,8 +46,9 @@ export function WriteJudgmentPage() {
       setTimeout(() => {
         submitJudgment(selectedCaseId, judgmentText);
         setIsSaving(false);
-        alert('Judgment submitted successfully! The case has been closed.');
+        showSuccess('Judgment submitted successfully! The case has been closed.');
         navigate('/dashboard');
+
       }, 1500);
     }
   };

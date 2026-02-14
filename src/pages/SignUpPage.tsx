@@ -5,6 +5,8 @@ import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { User, Lock, Mail, Phone, ArrowLeft, Code2 } from 'lucide-react';
 import { authApi, ApiError } from '../services/api';
+import { showSuccess, showError } from '../hooks/useToast';
+
 export function SignUpPage() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
@@ -23,9 +25,10 @@ export function SignUpPage() {
     e.preventDefault();
     setError(null);
     if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match');
+      showError('Passwords do not match');
       return;
     }
+
     if (!formData.role || !formData.email || !formData.fullName || !formData.password) {
       setError('Please fill in all required fields.');
       return;
@@ -44,8 +47,9 @@ export function SignUpPage() {
       if (!response.success) {
         throw new Error(response.error?.message || 'Registration failed');
       }
-      alert('Registration submitted! Please wait for admin approval.');
+      showSuccess('Registration submitted! Please wait for admin approval.');
       navigate('/login');
+
     } catch (err) {
       const message =
         err instanceof ApiError ? err.message

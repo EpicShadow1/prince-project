@@ -6,6 +6,8 @@ import { useChat, ChatMessage } from '../contexts/ChatContext';
 import { useStaff } from '../contexts/StaffContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useSystem } from '../contexts/SystemContext';
+import { useSocket } from '../contexts/SocketContext';
+
 
 export function ChatWidget() {
   const {
@@ -24,6 +26,10 @@ export function ChatWidget() {
   const {
     addSystemNotification
   } = useSystem();
+  const {
+    onChatMessage
+  } = useSocket();
+
   const [isOpen, setIsOpen] = useState(false);
   const [view, setView] = useState<'conversations' | 'users' | 'chat'>('conversations');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -49,6 +55,27 @@ export function ChatWidget() {
       setConversationMessages([]);
     }
   }, [selectedUserId, getConversationMessages]);
+
+  // Listen for real-time messages via WebSocket
+  useEffect(() => {
+    if (!user) return;
+
+    const unsubscribe = onChatMessage((message) => {
+      // Only add message if it's from the currently selected user or to the currently selected user
+      if (selectedUserId && (message.senderId === selectedUserId || message.receiverId === selectedUserId)) {
+        setConversationMessages(prev => {
+          // Avoid duplicates
+          if (prev.some(m => m.id === message.id)) return prev;
+          return [...prev, message];
+        });
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [user, selectedUserId, onChatMessage]);
+
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {

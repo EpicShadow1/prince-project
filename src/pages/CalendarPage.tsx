@@ -40,7 +40,8 @@ interface Hearing {
   lawyer?: string;
 }
 
-export function CalendarPage() {
+export default function CalendarPage() {
+
   const navigate = useNavigate();
   const { cases } = useCases();
 

@@ -5,7 +5,8 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { BarChart3, Users, FileText, AlertTriangle, TrendingUp, Download, PieChart, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 
-export function CourtAdminDashboard() {
+export default function CourtAdminDashboard() {
+
   return <Layout title="Executive Overview" showLogoBanner={false}>
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

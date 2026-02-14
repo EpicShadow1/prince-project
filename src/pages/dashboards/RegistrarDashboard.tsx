@@ -22,8 +22,12 @@ import {
 } from 'lucide-react';
 
 import { useCases } from '../../contexts/CasesContext';
-import { CreateCaseModal } from '../../components/CreateCaseModal';
-export function RegistrarDashboard() {
+import { CreateCaseModalWithSuccess } from '../../components/CreateCaseModal';
+
+import { showSuccess } from '../../hooks/useToast';
+
+export default function RegistrarDashboard() {
+
   const navigate = useNavigate();
   const { cases, assignCaseToCourt, scheduleHearing, approveCaseRegistration } =
   useCases();
@@ -110,23 +114,26 @@ export function RegistrarDashboard() {
       setShowAssignModal(false);
       setAssignCourt('');
       setAssignJudge('');
-      alert('Case assigned successfully!');
+      showSuccess('Case assigned successfully!');
     }
+
   };
   const submitHearing = () => {
     if (selectedCaseId && hearingDate) {
       scheduleHearing(selectedCaseId, hearingDate);
       setShowHearingModal(false);
       setHearingDate('');
-      alert('Hearing scheduled successfully!');
+      showSuccess('Hearing scheduled successfully!');
     }
+
   };
   const submitApproval = () => {
     if (selectedCaseId) {
       approveCaseRegistration(selectedCaseId);
       setShowReviewModal(false);
-      alert('Case registration approved and filed!');
+      showSuccess('Case registration approved and filed!');
     }
+
   };
   return <Layout title="Registrar Dashboard" showLogoBanner={false}>
       <div className="space-y-6">
@@ -455,7 +462,8 @@ export function RegistrarDashboard() {
         </div>
       </div>
 
-      <CreateCaseModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} />
+      <CreateCaseModalWithSuccess isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} />
+
 
       {/* Assign Court Modal */}
       {showAssignModal && <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">

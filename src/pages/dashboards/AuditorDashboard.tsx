@@ -31,7 +31,8 @@ interface BackendAuditLog {
   details: Record<string, unknown> | null;
 }
 
-export function AuditorDashboard() {
+export default function AuditorDashboard() {
+
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [actionFilter, setActionFilter] = useState('all');

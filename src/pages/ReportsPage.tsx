@@ -5,7 +5,8 @@ import { Button } from '../components/ui/Button';
 import { BarChart3, TrendingUp, Download, Calendar, FileText } from 'lucide-react';
 import { useCases } from '../contexts/CasesContext';
 import './ReportsPage.css';
-export function ReportsPage() {
+export default function ReportsPage() {
+
   const {
     cases
   } = useCases();

@@ -30,6 +30,9 @@ import { useCases, CaseDocument, CaseNote, type Case } from '../contexts/CasesCo
 import { useAuth } from '../contexts/AuthContext';
 import { EditCaseModal } from '../components/EditCaseModal';
 import { casesApi, documentsApi } from '../services/api';
+import { showSuccess } from '../hooks/useToast';
+
+import { handleApiError } from '../utils/errorHandler';
 
 function mapBackendDocToFrontend(d: { id: number; name: string; type: string; file_size?: number; uploaded_at?: string; uploaded_by_name?: string }): CaseDocument {
   return {
@@ -55,7 +58,8 @@ interface TimelineEvent {
   type: string;
 }
 
-export function CaseDetailPage() {
+export default function CaseDetailPage() {
+
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -144,6 +148,7 @@ export function CaseDetailPage() {
             is_government?: boolean;
           }>;
           party_category?: string;
+          notes?: Array<{ id?: number; content?: string; text?: string; created_at?: string; author_name?: string; author?: string }>;
         };
         setCaseNumericId(d.id);
         
@@ -173,6 +178,18 @@ export function CaseDetailPage() {
 
         }
 
+        // Map notes from API response
+        const mappedNotes: CaseNote[] = d.notes?.map((n: { id?: number; content?: string; text?: string; created_at?: string; author_name?: string; author?: string }) => ({
+          id: String(n.id),
+          text: n.content || n.text || '',
+          createdAt: n.created_at ? new Date(n.created_at).toLocaleDateString() : '',
+          author: n.author_name || n.author || 'Unknown'
+        })) ?? [];
+        
+        if (mappedNotes.length > 0) {
+          setNotesFromApi(mappedNotes);
+        }
+
         setCaseDetailFromApi({
           id: d.case_number ?? String(d.id),
           title: d.title ?? '',
@@ -188,7 +205,7 @@ export function CaseDetailPage() {
           filed: d.filed_date ? new Date(d.filed_date).toLocaleDateString() : '',
           updated: d.updated_at ? new Date(d.updated_at).toLocaleDateString() : '',
           documents: (d.documents ?? []).map(mapBackendDocToFrontend),
-          notes: notesFromApi,
+          notes: mappedNotes,
           partyCategory: (d.party_category as Case['partyCategory']) || undefined
 
         });
@@ -199,31 +216,11 @@ export function CaseDetailPage() {
     } finally {
       setLoadingDetail(false);
     }
-  }, [decodedId, notesFromApi]);
+  }, [decodedId]);
 
-  // Fetch notes from backend
-  const fetchNotes = useCallback(async () => {
-    if (!caseNumericId) return;
-    try {
-      const res = await casesApi.getCaseById(decodedId);
-      if (res.success && res.data) {
-        const d = res.data as { notes?: Array<{ id?: number; content?: string; text?: string; created_at?: string; author_name?: string; author?: string }> };
-        if (d.notes && Array.isArray(d.notes)) {
 
-          const mappedNotes: CaseNote[] = d.notes.map((n: { id?: number; content?: string; text?: string; created_at?: string; author_name?: string; author?: string }) => ({
+  // Notes are now fetched as part of fetchCaseDetail to avoid circular dependencies
 
-            id: String(n.id),
-            text: n.content || n.text || '',
-            createdAt: n.created_at ? new Date(n.created_at).toLocaleDateString() : '',
-            author: n.author_name || n.author || 'Unknown'
-          }));
-          setNotesFromApi(mappedNotes);
-        }
-      }
-    } catch (err) {
-      console.error('Failed to fetch notes:', err);
-    }
-  }, [caseNumericId, decodedId]);
 
   // Fetch timeline from backend
   const fetchTimeline = useCallback(async () => {
@@ -297,10 +294,10 @@ export function CaseDetailPage() {
 
   useEffect(() => {
     if (caseNumericId) {
-      fetchNotes();
       fetchTimeline();
     }
-  }, [caseNumericId, fetchNotes, fetchTimeline]);
+  }, [caseNumericId, fetchTimeline]);
+
 
   useEffect(() => {
     if (shouldOpenDocuments) setActiveTab('documents');
@@ -323,9 +320,9 @@ export function CaseDetailPage() {
         }
         await fetchCaseDetail();
         await refresh();
-        alert(fileList.length === 1 ? 'Document uploaded successfully!' : `${fileList.length} documents uploaded successfully!`);
+        showSuccess(fileList.length === 1 ? 'Document uploaded successfully!' : `${fileList.length} documents uploaded successfully!`);
       } catch (err) {
-        alert(err instanceof Error ? err.message : 'Upload failed.');
+        handleApiError(err, 'Document Upload');
       } finally {
         setUploading(false);
       }
@@ -343,7 +340,7 @@ export function CaseDetailPage() {
         addDocumentToCase(decodedId, newDoc);
       });
       setUploading(false);
-      alert(fileList.length === 1 ? 'Document added.' : `${fileList.length} documents added.`);
+      showSuccess(fileList.length === 1 ? 'Document added.' : `${fileList.length} documents added.`);
     }
     e.target.value = '';
   };
@@ -371,7 +368,7 @@ export function CaseDetailPage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    alert('Case details exported successfully!');
+    showSuccess('Case details exported successfully!');
   };
 
 
@@ -383,12 +380,12 @@ export function CaseDetailPage() {
         await fetchCaseDetail();
         setShowStatusModal(false);
         setNewStatus('');
-        alert('Case status updated!');
+        showSuccess('Case status updated!');
       } catch (err) {
         updateCaseStatus(decodedId, newStatus);
         setShowStatusModal(false);
         setNewStatus('');
-        alert('Case status updated locally!');
+        showSuccess('Case status updated locally!');
       }
     }
   };
@@ -402,12 +399,12 @@ export function CaseDetailPage() {
         await fetchCaseDetail();
         setShowHearingModal(false);
         setHearingDate('');
-        alert('Hearing scheduled successfully!');
+        showSuccess('Hearing scheduled successfully!');
       } catch (err) {
         scheduleHearing(decodedId, hearingDate);
         setShowHearingModal(false);
         setHearingDate('');
-        alert('Hearing scheduled locally!');
+        showSuccess('Hearing scheduled locally!');
       }
     }
   };
@@ -425,7 +422,7 @@ export function CaseDetailPage() {
       setShowNoteModal(false);
       setNoteText('');
       setActiveTab('notes');
-      alert('Note added successfully!');
+      showSuccess('Note added successfully!');
     }
   };
 
@@ -438,10 +435,10 @@ export function CaseDetailPage() {
     try {
       await deleteCase(decodedId);
       setShowDeleteModal(false);
-      alert('Case deleted successfully!');
+      showSuccess('Case deleted successfully!');
       navigate('/cases');
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete case');
+      handleApiError(err, 'Delete Case');
     } finally {
       setIsDeleting(false);
     }
@@ -767,7 +764,7 @@ export function CaseDetailPage() {
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleViewDocument(doc)} title="View Document">
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => alert(`Downloading ${doc.name}`)} title="Download Document">
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => { showSuccess(`Downloading ${doc.name}`); }} title="Download Document">
                             <Download className="h-4 w-4" />
                           </Button>
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:text-red-600" onClick={(e) => handleDeleteDocument(e, doc.id, doc.name)} title="Delete Document">
@@ -917,7 +914,7 @@ export function CaseDetailPage() {
                 <FileText className="h-20 w-20 text-slate-300 mx-auto mb-4" />
                 <p className="text-slate-500 mb-4">Document preview for: {selectedDocument.name}</p>
                 <p className="text-sm text-slate-400 mb-4">In a real application, this would display the PDF or document content.</p>
-                <Button onClick={() => alert(`Downloading ${selectedDocument.name}`)}>
+                <Button onClick={() => showSuccess(`Downloading ${selectedDocument.name}`)}>
                   <Download className="h-4 w-4 mr-2" />
                   Download to View
                 </Button>

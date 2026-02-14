@@ -89,7 +89,8 @@ interface DataExchange {
   errorDetails?: string;
 }
 
-export function PartnerInteroperabilityPage() {
+export default function PartnerInteroperabilityPage() {
+
   useAuth();
   const [partners, setPartners] = useState<Partner[]>([]);
 

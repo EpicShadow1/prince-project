@@ -21,7 +21,8 @@ import {
 import { useStaff, StaffMember } from '../contexts/StaffContext';
 
 
-export function StaffRegistrationPage() {
+export default function StaffRegistrationPage() {
+
   const {
     staff,
     addStaff,
